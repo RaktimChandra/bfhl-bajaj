@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="BFHL Node Analyzer — visualize hierarchies, detect cycles, and explore graph data with a lightning-fast API." />
+  <title>BFHL Node Analyzer · Bajaj Finserv Health</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌳%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Animated background -->
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow glow-1" aria-hidden="true"></div>
+  <div class="bg-glow glow-2" aria-hidden="true"></div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Confetti canvas for easter egg -->
+  <canvas id="confetti-canvas" class="confetti-canvas" aria-hidden="true"></canvas>
+
+  <main class="container">
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        <span>Bajaj Finserv Health · Round 1 · SRM</span>
+      </div>
+      <h1 class="hero-title">
+        <span class="gradient-text">BFHL</span> Node Analyzer
+      </h1>
+      <p class="hero-subtitle">
+        Feed it edges. Watch it parse, validate, detect cycles, and render beautiful hierarchies — in milliseconds.
+      </p>
+      <div class="hero-meta">
+        <div class="meta-pill">
+          <span class="meta-label">API</span>
+          <span id="api-status" class="meta-value">
+            <span id="api-dot" class="status-dot status-checking"></span>
+            <span id="api-status-text">checking…</span>
+          </span>
+        </div>
+        <div class="meta-pill">
+          <span class="meta-label">Endpoint</span>
+          <code id="api-endpoint" class="meta-value mono">/bfhl</code>
+        </div>
+        <div class="meta-pill">
+          <span class="meta-label">Version</span>
+          <span class="meta-value">1.0.0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- INPUT CARD -->
+    <section class="card input-card" aria-label="Input">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">Input Edges</h2>
+          <p class="card-subtitle">One edge per line or comma-separated. Format: <code class="mono">X-&gt;Y</code> (single uppercase letters).</p>
+        </div>
+        <div class="input-actions">
+          <button id="btn-example" class="btn btn-ghost" title="Load the specification example">
+            <span>📋</span> Load Example
+          </button>
+          <button id="btn-clear" class="btn btn-ghost" title="Clear input">
+            <span>✕</span> Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Editor: overlay highlight layer behind a transparent textarea -->
+      <div class="editor">
+        <pre id="highlight-layer" class="highlight-layer" aria-hidden="true"></pre>
+        <textarea
+          id="editor"
+          class="editor-textarea mono"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder="A->B&#10;A->C&#10;B->D&#10;X->Y&#10;Y->Z&#10;Z->X"
+        ></textarea>
+      </div>
+
+      <div class="editor-meta">
+        <div class="editor-stats">
+          <span class="stat-chip"><span id="stat-total">0</span> entries</span>
+          <span class="stat-chip stat-valid"><span id="stat-valid">0</span> valid</span>
+          <span class="stat-chip stat-invalid"><span id="stat-invalid">0</span> invalid</span>
+          <span class="stat-chip stat-dup"><span id="stat-dup">0</span> duplicate</span>
+        </div>
+        <div class="editor-hint">
+          <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to analyze
+        </div>
+      </div>
+
+      <div class="input-submit">
+        <button id="btn-submit" class="btn btn-primary">
+          <span class="btn-label">Analyze</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results-section" class="results-section" aria-live="polite">
+
+      <!-- Empty state -->
+      <div id="empty-state" class="empty-state">
+        <svg class="empty-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="emptyGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#6366F1" />
+              <stop offset="100%" stop-color="#06B6D4" />
+            </linearGradient>
+          </defs>
+          <circle cx="100" cy="40" r="16" fill="url(#emptyGrad)" opacity="0.9">
+            <animate attributeName="opacity" values="0.5;1;0.5" dur="3s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="60" cy="100" r="14" fill="url(#emptyGrad)" opacity="0.7">
+            <animate attributeName="opacity" values="0.4;0.9;0.4" dur="3s" begin="0.5s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="140" cy="100" r="14" fill="url(#emptyGrad)" opacity="0.7">
+            <animate attributeName="opacity" values="0.4;0.9;0.4" dur="3s" begin="1s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="40" cy="160" r="12" fill="url(#emptyGrad)" opacity="0.5">
+            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="1.5s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="100" cy="160" r="12" fill="url(#emptyGrad)" opacity="0.5">
+            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="160" cy="160" r="12" fill="url(#emptyGrad)" opacity="0.5">
+            <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" begin="2.5s" repeatCount="indefinite" />
+          </circle>
+          <path d="M100 56 L60 86 M100 56 L140 86 M60 114 L40 148 M60 114 L100 148 M140 114 L160 148" stroke="url(#emptyGrad)" stroke-width="2" opacity="0.4" fill="none" />
+        </svg>
+        <h3>Ready when you are</h3>
+        <p>Enter some edges above and hit <strong>Analyze</strong> to see the magic.</p>
+      </div>
+
+      <!-- Loading skeleton -->
+      <div id="loading-state" class="loading-state hidden">
+        <div class="skeleton skeleton-bar"></div>
+        <div class="skeleton-grid">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+        <div class="skeleton skeleton-tree"></div>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" class="error-state hidden">
+        <div class="error-icon">⚠️</div>
+        <h3>Something went wrong</h3>
+        <p id="error-message">The API didn't respond as expected.</p>
+        <button id="btn-retry" class="btn btn-secondary">Try Again</button>
+      </div>
+
+      <!-- Results content -->
+      <div id="results-content" class="results-content hidden">
+
+        <!-- Performance strip -->
+        <div class="perf-strip">
+          <div class="perf-grade">
+            <div id="perf-grade-letter" class="grade-letter">A+</div>
+            <div class="grade-label">Performance</div>
+          </div>
+          <div class="perf-metrics">
+            <div class="perf-metric">
+              <span class="perf-value" id="perf-server">—</span>
+              <span class="perf-label">server time</span>
+            </div>
+            <div class="perf-metric">
+              <span class="perf-value" id="perf-roundtrip">—</span>
+              <span class="perf-label">round-trip</span>
+            </div>
+            <div class="perf-metric">
+              <span class="perf-value" id="perf-entries">—</span>
+              <span class="perf-label">entries</span>
+            </div>
+            <div class="perf-metric">
+              <span class="perf-value" id="perf-trees">—</span>
+              <span class="perf-label">trees</span>
+            </div>
+            <div class="perf-metric">
+              <span class="perf-value" id="perf-cycles">—</span>
+              <span class="perf-label">cycles</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-tab="trees" role="tab" aria-selected="true">
+            <span>🌳</span> Trees
+          </button>
+          <button class="tab" data-tab="summary" role="tab" aria-selected="false">
+            <span>📊</span> Summary
+          </button>
+          <button class="tab" data-tab="issues" role="tab" aria-selected="false">
+            <span>⚠️</span> Issues <span id="issues-count" class="tab-count"></span>
+          </button>
+          <button class="tab" data-tab="json" role="tab" aria-selected="false">
+            <span>🧾</span> Raw JSON
+          </button>
+        </nav>
+
+        <!-- Tab panels -->
+        <div class="tab-panel active" data-panel="trees">
+          <div id="trees-container" class="trees-container"></div>
+        </div>
+
+        <div class="tab-panel" data-panel="summary">
+          <div class="summary-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🌲</div>
+              <div class="stat-number" id="sum-trees">0</div>
+              <div class="stat-title">Total Trees</div>
+              <div class="stat-sub">valid, non-cyclic</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🔁</div>
+              <div class="stat-number" id="sum-cycles">0</div>
+              <div class="stat-title">Total Cycles</div>
+              <div class="stat-sub">cyclic components</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">👑</div>
+              <div class="stat-number mono" id="sum-largest">—</div>
+              <div class="stat-title">Largest Tree</div>
+              <div class="stat-sub">deepest root</div>
+            </div>
+          </div>
+
+          <div class="identity-card card">
+            <div class="card-header">
+              <h3 class="card-title">Identity</h3>
+              <span class="card-subtitle">from the API response</span>
+            </div>
+            <div class="identity-grid">
+              <div class="identity-row">
+                <span class="identity-label">user_id</span>
+                <code id="id-user" class="mono">—</code>
+              </div>
+              <div class="identity-row">
+                <span class="identity-label">email_id</span>
+                <code id="id-email" class="mono">—</code>
+              </div>
+              <div class="identity-row">
+                <span class="identity-label">college_roll_number</span>
+                <code id="id-roll" class="mono">—</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="issues">
+          <div class="issues-layout">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Invalid Entries</h3>
+                <span id="invalid-count" class="chip chip-error">0</span>
+              </div>
+              <div id="invalid-list" class="pill-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Duplicate Edges</h3>
+                <span id="dup-count" class="chip chip-warn">0</span>
+              </div>
+              <div id="dup-list" class="pill-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="json">
+          <div class="json-header">
+            <div class="json-actions">
+              <button id="btn-copy-json" class="btn btn-ghost">
+                <span>📋</span> Copy
+              </button>
+              <button id="btn-download-json" class="btn btn-ghost">
+                <span>⬇</span> Download
+              </button>
+            </div>
+          </div>
+          <pre id="json-output" class="json-output mono"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <span>Built for the BFHL Round 1 · SRM · Full Stack Engineering Challenge</span>
+        <span class="footer-sep">·</span>
+        <a id="footer-repo" href="#" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- Config panel (shown when API base URL is unset) -->
+  <dialog id="config-dialog" class="config-dialog">
+    <form method="dialog" class="config-form">
+      <h3>Configure API Base URL</h3>
+      <p>Point the frontend at your deployed backend (no trailing slash, no <code>/bfhl</code>).</p>
+      <input id="config-input" type="url" class="mono" placeholder="https://your-api.onrender.com" />
+      <div class="config-actions">
+        <button value="cancel" class="btn btn-ghost">Cancel</button>
+        <button id="config-save" value="save" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <button id="btn-settings" class="floating-btn" title="API settings" aria-label="API settings">⚙</button>
+
+  <script src="tree-viz.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
